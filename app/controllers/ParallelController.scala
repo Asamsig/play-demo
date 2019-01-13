@@ -1,7 +1,11 @@
 package controllers
 
+import java.util.concurrent.Executors
+
 import akka.stream.scaladsl.{Concat, Merge, Source}
 import com.google.inject.Inject
+import org.apache.commons.lang3.concurrent.BasicThreadFactory
+import play.api.Logger
 import play.api.libs.concurrent.Futures
 import play.api.libs.ws.WSClient
 import play.api.mvc.InjectedController
@@ -9,10 +13,16 @@ import play.api.mvc.InjectedController
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
-class ParallelController @Inject()(ws: WSClient)(
-    implicit executionContext: ExecutionContext,
-    futures: Futures)
+class ParallelController @Inject()(ws: WSClient)(implicit futures: Futures)
     extends InjectedController {
+
+  val logger = Logger(getClass)
+
+  implicit val executionContext = ExecutionContext.fromExecutorService(
+    Executors.newSingleThreadExecutor(
+      new BasicThreadFactory.Builder()
+        .namingPattern("primary-thread-%d")
+        .build()))
 
   def withoutComprehension = Action.async {
     implicit val start = System.currentTimeMillis()
@@ -100,13 +110,19 @@ class ParallelController @Inject()(ws: WSClient)(
     Ok.chunked(Source.combine(eventualLong, eventualLong1)(Concat(_)))
   }
 
-  private def latency(any: Any)(implicit start: Long) =
+  private def latency(any: Any)(implicit start: Long) = {
+    logger.info("was executed")
+    Thread.sleep(3000)
     (System.currentTimeMillis() - start) millis
+  }
 
   private def timeLoad(site: String, start: Long) = {
     ws.url(site)
       .get()
-      .map(_ => s"$site: ${latency("")(start)}\n")
+      .map { _ =>
+        logger.info("was executed")
+        s"$site: ${latency("")(start)}\n"
+      }
   }
 
 }

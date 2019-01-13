@@ -12,6 +12,7 @@ GET        /loadTest            controllers.ParallelController.index
 GET        /parallel            controllers.ParallelController.parallel
 GET        /merge               controllers.ParallelController.merge
 GET        /concat              controllers.ParallelController.concat
+GET        /presentation        controllers.PresentationController.index
 
 # Map static resources from the /public folder to the /assets URL path
 GET        /assets/*file        controllers.Assets.versioned(path="/public", file: Asset)
